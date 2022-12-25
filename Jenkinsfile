@@ -47,7 +47,7 @@ spec:
     }
 
     parameters {
-        string(name: 'IMAGE_NAME', defaultValue: '', description: 'Your image name in format USER_NAME/IMAGE. You can write it as default value if you want')
+        string(name: 'IMAGE_NAME', defaultValue: 'koroliuk/express-fe', description: 'Your image name in format USER_NAME/IMAGE. You can write it as default value if you want')
     }
 
     stages {
@@ -56,6 +56,11 @@ spec:
                 // TODO: Run 'npm test' using the node container
                 // TODO: Make sure you do it inside express-fe folder.
                 // Search google for Jenkins pipeline 'dir' function
+                container('node') {
+                    dir('./express-fe') {
+                        sh 'npm test'
+                    }
+                }
             }
         }
         stage('Build image') {
@@ -72,42 +77,42 @@ spec:
                 }
             }
         }
-        stage('Deploy') {
-            steps {
-                // TODO: Need to do two things
-                // TODO: First: somehow using bash, substitute new params.IMAGE_NAME and BUILD_NUMBER variable into your frontend deployment.
-                // TODO: Hint: bitnami/kubectl has 'sed' utility available
-                // TODO: But you can use any other solution (Kustomize, etc.)
-                // TODO: Second - use kubectl apply from kubectl container
-            }
-        }
-        stage('Test deployment') {
-            agent {
-                kubernetes {
-                    yaml """
-apiVersion: v1
-kind: Pod
-metadata:
-  name: tester
-  labels:
-    robot: tester
-spec:
-  serviceAccount: jenkins-agent
-  containers:
-  - name: jnlp
-  - name: ubuntu
-    image: ubuntu:22.04
-    tty: true
-    command:
-    - cat
-"""
-                }
-            }
-            steps {
-                // TODO: Using ubuntu container install `curl`
-                // TODO: Use curl to make a request to curl http://frontend:80/books
-                // TODO: You probably have to wait for like 60-120 second till everything is deployed for the first time
-            }
-        }
+        // stage('Deploy') {
+        //     steps {
+        //         // TODO: Need to do two things
+        //         // TODO: First: somehow using bash, substitute new params.IMAGE_NAME and BUILD_NUMBER variable into your frontend deployment.
+        //         // TODO: Hint: bitnami/kubectl has 'sed' utility available
+        //         // TODO: But you can use any other solution (Kustomize, etc.)
+        //         // TODO: Second - use kubectl apply from kubectl container
+        //     }
+        // }
+//         stage('Test deployment') {
+//             agent {
+//                 kubernetes {
+//                     yaml """
+// apiVersion: v1
+// kind: Pod
+// metadata:
+//   name: tester
+//   labels:
+//     robot: tester
+// spec:
+//   serviceAccount: jenkins-agent
+//   containers:
+//   - name: jnlp
+//   - name: ubuntu
+//     image: ubuntu:22.04
+//     tty: true
+//     command:
+//     - cat
+// """
+//                 }
+//             }
+//             steps {
+//                 // TODO: Using ubuntu container install `curl`
+//                 // TODO: Use curl to make a request to curl http://frontend:80/books
+//                 // TODO: You probably have to wait for like 60-120 second till everything is deployed for the first time
+//             }
+//         }
     }
 }
