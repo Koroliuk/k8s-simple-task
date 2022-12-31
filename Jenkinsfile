@@ -61,7 +61,6 @@ spec:
             }
         }
         stage('Build image') {
-            // No need to change, it will work if your Dockerfile is good.
             environment {
                 PATH = "/busybox:/kaniko:$PATH"
                 HUB_IMAGE = "${params.IMAGE_NAME}"
@@ -77,8 +76,13 @@ spec:
         stage('Deploy') {
             steps {
                 container('kubectl') {
-                    sh "sed -i \"s|${params.IMAGE_NAME}:latest|${params.IMAGE_NAME}:${BUILD_NUMBER}|\" ./k8s/frontend-deployment.yaml"
-                    sh 'kubectl apply -f ./k8s'
+                    sh """cat <<EOF >> ./k8s/kustomization.yaml
+images:
+  - name: ${params.IMAGE_NAME}
+    newName: ${params.IMAGE_NAME}
+    newTag: "${BUILD_NUMBER}"
+EOF"""
+                    sh 'kubectl apply -k ./k8s'
                 }
             }
         }
@@ -110,9 +114,6 @@ spec:
                     sh "sleep 120"
                     sh 'curl http://frontend:80/books'
                 }
-                // TODO: Using ubuntu container install `curl`
-                // TODO: Use curl to make a request to curl http://frontend:80/books
-                // TODO: You probably have to wait for like 60-120 second till everything is deployed for the first time
             }
         }
     }
