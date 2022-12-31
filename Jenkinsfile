@@ -53,9 +53,6 @@ spec:
     stages {
         stage('Test') {
             steps {
-                // TODO: Run 'npm test' using the node container
-                // TODO: Make sure you do it inside express-fe folder.
-                // Search google for Jenkins pipeline 'dir' function
                 container('node') {
                     dir('./express-fe') {
                         sh 'npm test'
@@ -77,42 +74,46 @@ spec:
                 }
             }
         }
-        // stage('Deploy') {
-        //     steps {
-        //         // TODO: Need to do two things
-        //         // TODO: First: somehow using bash, substitute new params.IMAGE_NAME and BUILD_NUMBER variable into your frontend deployment.
-        //         // TODO: Hint: bitnami/kubectl has 'sed' utility available
-        //         // TODO: But you can use any other solution (Kustomize, etc.)
-        //         // TODO: Second - use kubectl apply from kubectl container
-        //     }
-        // }
-//         stage('Test deployment') {
-//             agent {
-//                 kubernetes {
-//                     yaml """
-// apiVersion: v1
-// kind: Pod
-// metadata:
-//   name: tester
-//   labels:
-//     robot: tester
-// spec:
-//   serviceAccount: jenkins-agent
-//   containers:
-//   - name: jnlp
-//   - name: ubuntu
-//     image: ubuntu:22.04
-//     tty: true
-//     command:
-//     - cat
-// """
-//                 }
-//             }
-//             steps {
-//                 // TODO: Using ubuntu container install `curl`
-//                 // TODO: Use curl to make a request to curl http://frontend:80/books
-//                 // TODO: You probably have to wait for like 60-120 second till everything is deployed for the first time
-//             }
-//         }
+        stage('Deploy') {
+            steps {
+                container('kubectl') {
+                    sh "sed -i \"s|${params.IMAGE_NAME}:latest|${params.IMAGE_NAME}:${BUILD_NUMBER}|\" ./k8s/frontend-deployment.yaml"
+                    sh 'kubectl apply -f ./k8s'
+                }
+            }
+        }
+        stage('Test deployment') {
+            agent {
+                kubernetes {
+                    yaml """
+apiVersion: v1
+kind: Pod
+metadata:
+  name: tester
+  labels:
+    robot: tester
+spec:
+  serviceAccount: jenkins-agent
+  containers:
+  - name: jnlp
+  - name: ubuntu
+    image: ubuntu:22.04
+    tty: true
+    command:
+    - cat
+"""
+                }
+            }
+            steps {
+                container('ubuntu') {
+                    sh 'apt-get update && apt upgrade && apt-get install -y curl'
+                    sh "sleep 120"
+                    sh 'curl http://frontend:80/books'
+                }
+                // TODO: Using ubuntu container install `curl`
+                // TODO: Use curl to make a request to curl http://frontend:80/books
+                // TODO: You probably have to wait for like 60-120 second till everything is deployed for the first time
+            }
+        }
     }
 }
